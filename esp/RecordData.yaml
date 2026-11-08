@@ -1,0 +1,10 @@
+ModKey: Mantella Living World - Survival.esp
+GameRelease: SkyrimSE
+ModHeader:
+  Flags:
+  - Small
+  Author: itsPigeon2000
+  Description: Mantella Living World - Survival. What the player and party eat, where they sleep and how they look, told to Mantella NPCs.
+  MasterReferences:
+  - Master: Skyrim.esm
+    FileSize: 0

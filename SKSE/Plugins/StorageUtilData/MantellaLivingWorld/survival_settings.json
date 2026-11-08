@@ -1,0 +1,30 @@
+{
+  "int": {
+    "close_rank": 4,
+    "critical_warning": 1,
+    "drunk_drinks": 3,
+    "follower_hungry_days": 2,
+    "follower_hungry_max": 7,
+    "low_food": 3,
+    "max_facts": 6,
+    "vampire_hungry_days": 2,
+    "visible_stage": 4
+  },
+  "float": {
+    "critical_cooldown_days": 3.0,
+    "critical_radius": 1500.0,
+    "eat_this_hunger": 80.0,
+    "warm_you_cold": 150.0
+  },
+  "stringList": {
+    "pure_bloods": [
+      "Lord Harkon",
+      "Harkon",
+      "Valerica",
+      "Serana"
+    ],
+    "disease_ignore": [
+      "Victim Damage"
+    ]
+  }
+}

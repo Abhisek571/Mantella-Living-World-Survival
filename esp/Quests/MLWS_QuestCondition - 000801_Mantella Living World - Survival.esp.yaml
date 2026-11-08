@@ -1,0 +1,28 @@
+FormKey: 000801:Mantella Living World - Survival.esp
+EditorID: MLWS_QuestCondition
+VirtualMachineAdapter:
+  Scripts:
+  - Name: MLWS_Condition
+    Properties:
+    - MutagenObjectType: ScriptObjectProperty
+      Name: PlayerRef
+      Object: 000014:Skyrim.esm
+  FileName: ''
+  Aliases:
+  - Property:
+      Name: ''
+      Object: 000801:Mantella Living World - Survival.esp
+      Alias: 0
+    Scripts:
+    - Name: MLWS_PlayerAlias
+Name:
+  TargetLanguage: English
+  Value: Mantella Living World - Survival condition
+Flags:
+- StartGameEnabled
+NextAliasID: 1
+Aliases:
+- Name: PlayerAlias
+  Flags: []
+  ForcedReference: 000014:Skyrim.esm
+  VoiceTypes: Null
