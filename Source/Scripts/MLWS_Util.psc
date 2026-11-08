@@ -206,8 +206,11 @@ EndFunction
 
 ; Whole game days since a stamp on the actor, starting the clock from when the party member was first seen when unset.
 int Function DaysSince(Actor akActor, string asKey, float afNow) global
-	float at = StorageUtil.GetFloatValue(akActor, asKey, -1.0)
-	If at < 0.0
+	; Missing means never stored, not "below zero": a stamp early in a new game, moved back by days, can be negative.
+	float at = afNow
+	If StorageUtil.HasFloatValue(akActor, asKey)
+		at = StorageUtil.GetFloatValue(akActor, asKey)
+	Else
 		at = StorageUtil.GetFloatValue(akActor, "MLWS_SeenAt", afNow)
 	EndIf
 	Return (afNow - at) as int
