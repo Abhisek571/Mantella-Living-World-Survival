@@ -202,7 +202,16 @@ Function WriteFacts(Actor akNpc, string asPath, bool abParty, float afNow)
 	EndIf
 
 	Visible(PlayerRef, asPath, "fact_surv_player_", player + " ", today, afNow)
-	Visible(akNpc, asPath, "fact_surv_self_", "You ", today, afNow)
+	; The NPC's own state only for unique NPCs: generic NPCs of one base share this file, so one guard's wound would
+	; reach the next guard of that base (World's Facts.Sync skips them for the same reason).
+	ActorBase base = akNpc.GetActorBase()
+	If base && base.IsUnique()
+		Visible(akNpc, asPath, "fact_surv_self_", "You ", today, afNow)
+	Else
+		MLWS_Util.ClearFact(asPath, "fact_surv_self_wounded")
+		MLWS_Util.ClearFact(asPath, "fact_surv_self_drunk")
+		MLWS_Util.ClearFact(asPath, "fact_surv_self_disease")
+	EndIf
 	Weather(akNpc, asPath, abParty, today)
 EndFunction
 
@@ -264,15 +273,21 @@ string Function ShownDiseases(Actor akActor)
 	If all == ""
 		Return ""
 	EndIf
-	string[] names = StringUtil.Split(all, ", ")
+	; SKSE's Split treats each delimiter character on its own, so split on the comma only and trim the space after it
+	; ("Rock Joint, Victim Damage" must stay two names, not four words).
+	string[] names = StringUtil.Split(all, ",")
 	string out = ""
 	int i = 0
 	While names && i < names.Length
-		If names[i] != "" && !JsonUtil.StringListHas(MLWS_Util.SETTINGS(), "disease_ignore", names[i])
+		string disease = names[i]
+		While disease != "" && StringUtil.GetNthChar(disease, 0) == " "
+			disease = StringUtil.Substring(disease, 1)  ; length 0 = the rest of the string
+		EndWhile
+		If disease != "" && !JsonUtil.StringListHas(MLWS_Util.SETTINGS(), "disease_ignore", disease)
 			If out != ""
 				out += ", "
 			EndIf
-			out += names[i]
+			out += disease
 		EndIf
 		i += 1
 	EndWhile
