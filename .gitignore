@@ -1,0 +1,10 @@
+# build output
+build/*
+!build/stubs/
+out/
+test/build/
+test/out/
+*.esp
+.snapshots/
+__pycache__/
+docs/
