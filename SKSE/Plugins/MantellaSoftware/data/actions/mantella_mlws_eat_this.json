@@ -1,0 +1,19 @@
+{
+    "identifier": "mantella_mlws_eat_this",
+    "name": "EatThis",
+    "description": "Make the hungry player eat something now, from your pack or theirs. Only when the player clearly agrees to eat.",
+    "note": "Needs Mantella Living World - Survival.",
+    "key": "EatThis",
+    "enabled": true,
+    "lw_gate": "follower",
+    "prompt": "If the player is hungry and clearly agrees to eat what you offer, begin your response with '{key}:'",
+    "allowed_games": [
+        "skyrim"
+    ],
+    "requires_response": true,
+    "is-interrupting": false,
+    "allow_repeat": false,
+    "one-on-one": true,
+    "multi-npc": true,
+    "radiant": false
+}

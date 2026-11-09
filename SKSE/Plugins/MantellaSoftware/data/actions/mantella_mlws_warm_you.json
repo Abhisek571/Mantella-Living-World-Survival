@@ -1,0 +1,19 @@
+{
+    "identifier": "mantella_mlws_warm_you",
+    "name": "WarmYou",
+    "description": "Warm the cold player with a fire spell you know. Only when the player is cold and you do it now.",
+    "note": "Needs Mantella Living World - Survival.",
+    "key": "WarmYou",
+    "enabled": true,
+    "lw_gate": "surv_warm=1",
+    "prompt": "If the player is cold and you warm them with a fire spell you know, begin your response with '{key}:'",
+    "allowed_games": [
+        "skyrim"
+    ],
+    "requires_response": true,
+    "is-interrupting": false,
+    "allow_repeat": false,
+    "one-on-one": true,
+    "multi-npc": true,
+    "radiant": false
+}

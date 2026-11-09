@@ -1,0 +1,37 @@
+FormKey: 000805:Mantella Living World - Survival.esp
+EditorID: MLWS_QuestActions
+VirtualMachineAdapter:
+  Scripts:
+  - Name: MLWS_Actions
+    Properties:
+    - MutagenObjectType: ScriptObjectProperty
+      Name: PlayerRef
+      Object: 000014:Skyrim.esm
+    - MutagenObjectType: ScriptObjectProperty
+      Name: Food
+      Object: 000802:Mantella Living World - Survival.esp
+    - MutagenObjectType: ScriptObjectProperty
+      Name: Condition
+      Object: 000801:Mantella Living World - Survival.esp
+    - MutagenObjectType: ScriptObjectProperty
+      Name: Facts
+      Object: 000800:Mantella Living World - Survival.esp
+  FileName: ''
+  Aliases:
+  - Property:
+      Name: ''
+      Object: 000805:Mantella Living World - Survival.esp
+      Alias: 0
+    Scripts:
+    - Name: MLWS_PlayerAlias
+Name:
+  TargetLanguage: English
+  Value: Mantella Living World - Survival actions
+Flags:
+- StartGameEnabled
+NextAliasID: 1
+Aliases:
+- Name: PlayerAlias
+  Flags: []
+  ForcedReference: 000014:Skyrim.esm
+  VoiceTypes: Null
