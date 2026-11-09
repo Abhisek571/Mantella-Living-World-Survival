@@ -1,6 +1,6 @@
 # Mantella Living World - Survival
 
-Lets Mantella NPCs notice how you are getting by: hunger, cold, rest, what you have eaten and where you slept. A module of [Mantella Living World - Integration Hub](https://github.com/Abhisek571/Mantella-Living-World-Hub). Not released yet.
+Lets Mantella NPCs notice how you are getting by: hunger, cold, rest, what you have eaten and where you slept. A module of [Mantella Living World - Integration Hub](https://github.com/Abhisek571/Mantella-Living-World-Hub).
 
 Everything is written as short facts into the NPC's file when they join a talk, and only what applies now. A healthy player in town tells a stranger almost nothing. At most six facts go to one NPC (`max_facts`), the most pressing first: needs and condition right now, then what the party saw, then lasting things such as a favourite food.
 

@@ -2,7 +2,7 @@
 
 Every change to Mantella Living World - Survival. The Nexus page lists only the main changes for each version.
 
-## Unreleased
+## 1.0.0 (2026-11-09)
 
 First release.
 
