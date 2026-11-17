@@ -15,15 +15,29 @@ Function Register()
 EndFunction
 
 Event OnNpcAdded(Form akActor)
+	If StorageUtil.GetIntValue(None, "MLW_TimingOn", 0) == 1  ; speed testing (off by default): one stage-time row
+		MiscUtil.WriteToFile("Data/SKSE/Plugins/StorageUtilData/MantellaLivingWorld/timing_game.csv", StorageUtil.GetIntValue(None, "MLW_TimingTalk", 0) + "," + Utility.GetCurrentRealTime() + ",MLWS_Facts,OnNpcAdded_start,\n", true, false)
+	EndIf
 	Actor npc = akActor as Actor
 	If npc && npc != PlayerRef && !npc.IsDead()
 		Write(npc)
+	EndIf
+	If StorageUtil.GetIntValue(None, "MLW_TimingOn", 0) == 1  ; speed testing (off by default): one stage-time row
+		MiscUtil.WriteToFile("Data/SKSE/Plugins/StorageUtilData/MantellaLivingWorld/timing_game.csv", StorageUtil.GetIntValue(None, "MLW_TimingTalk", 0) + "," + Utility.GetCurrentRealTime() + ",MLWS_Facts,OnNpcAdded_end,\n", true, false)
 	EndIf
 EndEvent
 
 ; Also called after an action changes something, so a running talk sees it.
 Function Write(Actor akNpc)
 	string path = MLWS_Util.NpcFile(akNpc)
+	; one write per file at a time: two generic NPCs of one base share the file, and a second write in between would
+	; clear the first one's staged facts (a stamp, not a flag: a save taken mid-write never blocks the file for good)
+	float started = Utility.GetCurrentRealTime()
+	float other = StorageUtil.GetFloatValue(None, "MLWS_WritingAt" + path, -1000.0)
+	If other <= started && started - other < 10.0
+		Return
+	EndIf
+	StorageUtil.SetFloatValue(None, "MLWS_WritingAt" + path, started)
 	float now = Utility.GetCurrentGameTime()
 	bool party = MLWS_Util.IsParty(akNpc)
 	If party && !StorageUtil.HasFloatValue(akNpc, "MLWS_SeenAt")
@@ -38,12 +52,8 @@ Function Write(Actor akNpc)
 	Beds.WriteFacts(akNpc, path, party, now)
 	Actions.WriteFacts(akNpc, path, party, now)
 	Commit(path)
-	JsonUtil.Save(path)
-	int handle = ModEvent.Create("MLW_RefreshNpc")
-	If handle
-		ModEvent.PushForm(handle, akNpc)
-		ModEvent.Send(handle)
-	EndIf
+	JsonUtil.Save(path)  ; the Hub reads fact_surv_* from this file itself: no refresh of the rest of it
+	StorageUtil.UnsetFloatValue(None, "MLWS_WritingAt" + path)
 EndFunction
 
 ; The Hub gives each NPC a small fact budget, so at most max_facts survival facts go in, highest priority first (ties in

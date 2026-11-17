@@ -16,10 +16,10 @@ Everything is written as short facts into the NPC's file when they join a talk, 
 | Werewolf | Party | You changed into a werewolf in the last day |
 | Critical warning | | Once when a need reaches its worst stage, a party member near you says so (3 game days between warnings, the Hub's pacing applies) |
 | ShareFood | Party members | Refused for anyone not travelling with you. One real food item moves between you and the NPC, and whoever got it eats it. Blood for a vampire |
-| EatThis | Party members | Refused for anyone not travelling with you, and when Survival Mode says you are not hungry. You eat what the NPC offers (or from your pack). With Survival Mode Improved, hunger comes down through its API |
+| ShareFood, player_eats (was EatThis) | Party members | Refused for anyone not travelling with you, and when Survival Mode says you are not hungry. You eat what the NPC offers (or from your pack). With Survival Mode Improved, hunger comes down through its API |
 | WarmYou | NPCs with a fire spell | A show of flames and Survival Mode Improved's cold comes down. Refused without it |
 
-After any of the three actions the NPC's facts are written again, so the talk sees the change at once.
+After ShareFood or WarmYou the NPC's facts are written again, so the talk sees the change at once.
 
 Close means a relationship rank of 4 (lover or spouse, `close_rank`), because following someone already gives rank 3. Living World Relationships and Arousal can also mark an NPC close, but only while they are installed; without them only a spouse or lover counts.
 
@@ -31,7 +31,7 @@ Requires:
 - SKSE, [PapyrusUtil SE](https://www.nexusmods.com/skyrimspecialedition/mods/13048), [Address Library for SKSE Plugins](https://www.nexusmods.com/skyrimspecialedition/mods/32444)
 
 Optional:
-- Survival Mode (Creation Club) for hunger, and [Survival Mode Improved - SKSE](https://www.nexusmods.com/skyrimspecialedition/mods/78244) for cold, tiredness, EatThis's hunger and WarmYou. Neither is a master.
+- Survival Mode (Creation Club) for hunger, and [Survival Mode Improved - SKSE](https://www.nexusmods.com/skyrimspecialedition/mods/78244) for cold, tiredness, the hunger of ShareFood's player_eats and WarmYou. Neither is a master.
 - [Better Vampires](https://www.nexusmods.com/skyrimspecialedition/mods/1925) (its Mortal's Mask hides the signs)
 
 Settings: `SKSE/Plugins/StorageUtilData/MantellaLivingWorld/survival_settings.json` (pure-blood names, thresholds, facts per NPC, the warning on or off).

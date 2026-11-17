@@ -1,7 +1,7 @@
 {
     "identifier": "mantella_mlws_warm_you",
     "name": "WarmYou",
-    "description": "Warm the cold player with a fire spell you know. Only when the player is cold and you do it now.",
+    "description": "Warm the cold player now with a fire spell you know.",
     "note": "Needs Mantella Living World - Survival.",
     "key": "WarmYou",
     "enabled": true,

@@ -331,6 +331,9 @@ SUL = re.compile(r'StorageUtil\.(Int|Float|String|Form)List(Add|Get|Set|Count|Fi
 EXTERNAL = {  # keys this module reads that another module writes, with the file that writes them
     'mlw_isclose': os.path.join(CODING, 'Mantella-Living-World-Arousal', 'Source', 'Scripts', 'MantellaOSLA_Main.psc'),
     'mrb_close': os.path.join(CODING, 'Mantella-Living-World-Relationships', 'Source', 'Scripts', 'MRB_MARAS.psc'),
+    # speed testing (off by default): the Hub sets the switch and the talk number
+    'mlw_timingon': os.path.join(CODING, 'Mantella-Living-World-Hub', 'Source', 'Scripts', 'MLW_Timing.psc'),
+    'mlw_timingtalk': os.path.join(CODING, 'Mantella-Living-World-Hub', 'Source', 'Scripts', 'MLW_Timing.psc'),
 }
 WRITE_ONLY = {'mlws_warmfrom': 'the stage warmed up from; no fact uses it yet'}
 keys = {}  # key pattern -> {'w': [...], 'r': [...], 'types': set()}

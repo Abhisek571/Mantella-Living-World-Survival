@@ -112,7 +112,9 @@ EndFunction
 
 Event OnUpdate()
 	Check()
-	RegisterForSingleUpdate(POLL)
+	If needs[0] && MLWS_Util.SurvivalOn()  ; Survival Mode off: the poll stops; the next load starts it again (Register)
+		RegisterForSingleUpdate(POLL)
+	EndIf
 EndEvent
 
 Function Check()

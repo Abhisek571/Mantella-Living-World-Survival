@@ -15,7 +15,9 @@ def check(name, ok):
 
 
 actions = glob.glob(os.path.join(ROOT, 'SKSE/Plugins/MantellaSoftware/data/actions/*.json'))
-check('three action files', len(actions) == 3)
+check('two action files (EatThis is ShareFood player_eats)', len(actions) == 2)
+share = json.load(open(os.path.join(ROOT, 'SKSE/Plugins/MantellaSoftware/data/actions/mantella_mlws_share_food.json'), encoding='utf-8'))
+check('ShareFood directions: npc_gives, player_gives, player_eats', share['parameters']['direction']['enum'] == ['npc_gives', 'player_gives', 'player_eats'])
 for path in actions:
     a = json.load(open(path, encoding='utf-8'))
     name = os.path.basename(path)
@@ -45,6 +47,10 @@ check('the vampire job writes first, so the late signs are not cut by conditions
 actions_src = open(os.path.join(ROOT, 'Source/Scripts/MLWS_Actions.psc'), encoding='utf-8').read()
 check('every action rewrites the facts on success', actions_src.count('Facts.Write(akNpc)') == 3)
 check('ShareFood and EatThis refuse NPCs outside the party', actions_src.count('is not travelling with') == 2)
+share_event = actions_src[actions_src.find('Event OnShareAdvanced'):actions_src.find('EndEvent', actions_src.find('Event OnShareAdvanced'))]
+check('ShareFood player_eats runs EatThis, the other directions ShareFood', 'If direction == "player_eats"' in share_event
+      and 'EatThis(akSpeaker as Actor)' in share_event and 'ShareFood(akSpeaker as Actor, direction)' in share_event)
+check('the EatThis action of the previous version stays registered', 'RegisterForModEvent(ADVANCED + ACTION_EAT, "OnEatAdvanced")' in actions_src)
 util_src = open(os.path.join(ROOT, 'Source/Scripts/MLWS_Util.psc'), encoding='utf-8').read()
 check('jobs only gather facts, Commit writes the file', 'JsonUtil.SetStringValue' not in util_src and 'JsonUtil.UnsetStringValue' not in util_src)
 prios = re.findall(r'Set(?:Now)?Fact\(asPath, .*?, ([0-9]), ', src)
