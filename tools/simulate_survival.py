@@ -1395,11 +1395,11 @@ def run_random(seed, days, fixed, rep):
     rng = random.Random(seed)
     random.seed(seed)
     files = {}
-    chars = ['Vega', 'Nyri']
+    chars = ['Vega', 'Jenassa']
     OTHER_NAMES.update(chars)
     base = roster()
     saves = {c: [World(c, base)] for c in chars}
-    styles = {'Vega': 'glutton', 'Nyri': 'starve'}
+    styles = {'Vega': 'glutton', 'Jenassa': 'starve'}
     day = 0
     while day < days:
         char = rng.choice(chars)

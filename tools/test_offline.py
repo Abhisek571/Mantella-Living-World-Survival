@@ -45,12 +45,18 @@ check('join commits after every job, then saves',
 check('the vampire job writes first, so the late signs are not cut by conditions',
       0 <= facts_src.find('Vampire.WriteFacts') < facts_src.find('Condition.WriteFacts'))
 actions_src = open(os.path.join(ROOT, 'Source/Scripts/MLWS_Actions.psc'), encoding='utf-8').read()
-check('every action rewrites the facts on success', actions_src.count('Facts.Write(akNpc)') == 3)
+bodies = re.findall(r'^Event On\w+\(.*?^EndEvent', actions_src, re.M | re.S)
+check('every action rewrites the facts after it is done (one helper, called by every action event)',
+      actions_src.count('Facts.Write(akNpc)') == 1 and len(bodies) == 4
+      and all(b.find('ActionDone(') < b.find('WriteFactsAfter(akSpeaker as Actor)') for b in bodies)
+      and all('WriteFactsAfter(akSpeaker as Actor)' in b for b in bodies))
 check('ShareFood and EatThis refuse NPCs outside the party', actions_src.count('is not travelling with') == 2)
 share_event = actions_src[actions_src.find('Event OnShareAdvanced'):actions_src.find('EndEvent', actions_src.find('Event OnShareAdvanced'))]
 check('ShareFood player_eats runs EatThis, the other directions ShareFood', 'If direction == "player_eats"' in share_event
       and 'EatThis(akSpeaker as Actor)' in share_event and 'ShareFood(akSpeaker as Actor, direction)' in share_event)
-check('the EatThis action of the previous version stays registered', 'RegisterForModEvent(ADVANCED + ACTION_EAT, "OnEatAdvanced")' in actions_src)
+check('the EatThis action of the previous version is unregistered, not handled',
+      'UnregisterForModEvent(ADVANCED + ACTION_EAT)' in actions_src and 'UnregisterForModEvent(LEGACY + ACTION_EAT)' in actions_src
+      and 'RegisterForModEvent(ADVANCED + ACTION_EAT' not in actions_src and 'OnEat' not in actions_src)
 util_src = open(os.path.join(ROOT, 'Source/Scripts/MLWS_Util.psc'), encoding='utf-8').read()
 check('jobs only gather facts, Commit writes the file', 'JsonUtil.SetStringValue' not in util_src and 'JsonUtil.UnsetStringValue' not in util_src)
 prios = re.findall(r'Set(?:Now)?Fact\(asPath, .*?, ([0-9]), ', src)
