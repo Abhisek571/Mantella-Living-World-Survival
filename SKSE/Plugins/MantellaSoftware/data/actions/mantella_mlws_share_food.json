@@ -1,7 +1,7 @@
 {
     "identifier": "mantella_mlws_share_food",
     "name": "ShareFood",
-    "description": "Hand one real food item to the player, or take one from the player and eat it. Only when it really happens now; not for talk about food.",
+    "description": "Real food changes hands and is eaten now; not for talk about food.",
     "note": "Needs Mantella Living World - Survival.",
     "key": "ShareFood",
     "enabled": true,
@@ -11,15 +11,16 @@
             "type": "string",
             "enum": [
                 "npc_gives",
-                "player_gives"
+                "player_gives",
+                "player_eats"
             ],
-            "description": "npc_gives: you hand the player food from your pack and the player eats it; player_gives: the player hands you food and you eat it."
+            "description": "npc_gives: you hand the player food; player_gives: they hand you food; player_eats: the hungry player agreed to eat now."
         }
     },
     "required": [
         "direction"
     ],
-    "prompt": "If you hand the player food from your pack, or eat food the player gives you, begin your response with '{key}:'",
+    "prompt": "If you hand the player food from your pack, begin your response with '{key}:'",
     "allowed_games": [
         "skyrim"
     ],

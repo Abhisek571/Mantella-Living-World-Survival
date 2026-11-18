@@ -8,3 +8,6 @@ EndFunction
 Actor Function GetActorInConversationByIndex(int indexOfActor)
 	Return None
 EndFunction
+bool Function IsPlayerInConversation()
+	Return false
+EndFunction

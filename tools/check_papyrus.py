@@ -331,6 +331,9 @@ SUL = re.compile(r'StorageUtil\.(Int|Float|String|Form)List(Add|Get|Set|Count|Fi
 EXTERNAL = {  # keys this module reads that another module writes, with the file that writes them
     'mlw_isclose': os.path.join(CODING, 'Mantella-Living-World-Arousal', 'Source', 'Scripts', 'MantellaOSLA_Main.psc'),
     'mrb_close': os.path.join(CODING, 'Mantella-Living-World-Relationships', 'Source', 'Scripts', 'MRB_MARAS.psc'),
+    # speed testing (off by default): the Hub sets the switch and the talk number
+    'mlw_timingon': os.path.join(CODING, 'Mantella-Living-World-Hub', 'Source', 'Scripts', 'MLW_Timing.psc'),
+    'mlw_timingtalk': os.path.join(CODING, 'Mantella-Living-World-Hub', 'Source', 'Scripts', 'MLW_Timing.psc'),
 }
 WRITE_ONLY = {'mlws_warmfrom': 'the stage warmed up from; no fact uses it yet'}
 keys = {}  # key pattern -> {'w': [...], 'r': [...], 'types': set()}
@@ -479,8 +482,8 @@ for path in sorted(glob.glob(os.path.join(ROOT, 'SKSE/Plugins/MantellaSoftware/d
 
 for s in scripts.values():
     doc = open(s.path, encoding='utf-8').read()
-    stated = re.search(r'every (\d+(?:\.\d+)?) real seconds', doc)
-    minimum = float(stated.group(1)) if stated else DESIGN_POLL
+    stated = [float(x) for x in re.findall(r'every (\d+(?:\.\d+)?) real seconds', doc)]  # a slower one may follow
+    minimum = min(stated) if stated else DESIGN_POLL
     for fn, i, m, args in calls(s, r'\b(RegisterForSingleUpdate|RegisterForUpdate|RegisterForSingleUpdateGameTime|RegisterForUpdateGameTime)'):
         v = args[0]
         val = s.props.get(v, (None, None))[1] if v in s.props else (float(v) if re.match(r'^[\d.]+$', v) else None)
@@ -490,7 +493,7 @@ for s in scripts.values():
             check('polling', f'{s.file}:{i} {m.group(1)}({v} = {val}) at least {minimum:g} s', val is not None and val >= minimum)
             check('polling', f'{s.file}:{i} single updates only (no repeating RegisterForUpdate)', m.group(1) == 'RegisterForSingleUpdate')
         if stated:
-            check('polling', f'{s.file}: the interval the docs give ({minimum:g} s) is the one used', val == minimum)
+            check('polling', f'{s.file}: the interval used ({val}) is one the docs give ({stated})', val in stated)
     for fn in s.funcs.values():
         depth = 0
         for i, l in fn['body']:

@@ -9,9 +9,11 @@ thresholds reached. Warming up: the cold stage came down lately, for the party. 
 Works without Survival Mode: wounded, drunk, diseased, and not my weather for a party member from a warm land.
 
 Critical warning: once when a need reaches the worst stage a party member near the player says so through a
-MantellaAddEvent line. Checked every 30 real seconds, and only with Survival Mode installed.}
+MantellaAddEvent line. Checked every 30 real seconds, and only with Survival Mode installed; while Survival Mode is
+switched off the check waits every 300 real seconds, so turning it on later starts the warnings again.}
 
 float Property POLL = 30.0 AutoReadOnly
+float Property POLL_OFF = 300.0 AutoReadOnly   ; while Survival Mode is switched off
 float Property WARM_DAYS = 0.05 AutoReadOnly     ; about an hour of game time
 string Property KEY_WARM_AT = "MLWS_WarmAt" AutoReadOnly
 string Property KEY_WARM_FROM = "MLWS_WarmFrom" AutoReadOnly
@@ -66,7 +68,12 @@ EndFunction
 
 ; 0-5, or -1 when this need cannot be read now.
 int Function Stage(int aiNeed)
-	If !needs || !needs[aiNeed] || !stages[aiNeed * 5 + 4] || !MLWS_Util.SurvivalOn()
+	Return StageOn(aiNeed, MLWS_Util.SurvivalOn())
+EndFunction
+
+; Stage with Survival Mode's switch already read (MLWS_Facts reads it once per write).
+int Function StageOn(int aiNeed, bool abSurvivalOn)
+	If !needs || !needs[aiNeed] || !stages[aiNeed * 5 + 4] || !abSurvivalOn
 		Return -1
 	EndIf
 	float value = needs[aiNeed].GetValue()
@@ -112,15 +119,22 @@ EndFunction
 
 Event OnUpdate()
 	Check()
-	RegisterForSingleUpdate(POLL)
+	If needs[0]
+		If MLWS_Util.SurvivalOn()
+			RegisterForSingleUpdate(POLL)
+		Else
+			RegisterForSingleUpdate(POLL_OFF)  ; Survival Mode off: a slow check, so switching it on brings the warnings back
+		EndIf
+	EndIf
 EndEvent
 
 Function Check()
 	float now = Utility.GetCurrentGameTime()
 	bool vampire = MLWS_Util.IsVampire(PlayerRef)
+	bool on = MLWS_Util.SurvivalOn()  ; read once per check
 	int i = 0
 	While i < 3
-		int stage = Stage(i)
+		int stage = StageOn(i, on)
 		If stage >= 0 && !(i == 0 && vampire)
 			If i == 1 && lastStage[1] >= 3 && stage < lastStage[1]
 				StorageUtil.SetFloatValue(PlayerRef, KEY_WARM_AT, now)
@@ -164,6 +178,9 @@ bool Function Warn(int aiNeed, float afNow)
 		Return false
 	EndIf
 	If talk.IsRunning()
+		If !talk.IsPlayerInConversation()
+			Return false  ; a radiant talk between NPCs: not for the player's ears; tried again on the next check
+		EndIf
 		MLWS_Util.Send(line)
 	Else
 		; The Hub's pacing keeps this from stepping on other ambient lines; without the Hub the cooldown above is enough.
@@ -187,15 +204,15 @@ EndFunction
 ; Facts
 ; ---------------------------------------------------------------------------
 
-Function WriteFacts(Actor akNpc, string asPath, bool abParty, float afNow)
+Function WriteFacts(Actor akNpc, string asPath, bool abParty, float afNow, bool abSurvivalOn, bool abPlayerVampire, string asPlayer)
 	int today = afNow as int
-	string player = MLWS_Util.PlayerName()
-	NeedFact(asPath, "fact_surv_hunger", 0, today, player, MLWS_Util.IsVampire(PlayerRef))
-	NeedFact(asPath, "fact_surv_cold", 1, today, player, false)
-	NeedFact(asPath, "fact_surv_tired", 2, today, player, false)
+	string player = asPlayer
+	NeedFact(asPath, "fact_surv_hunger", 0, today, player, abPlayerVampire, abSurvivalOn)
+	NeedFact(asPath, "fact_surv_cold", 1, today, player, false, abSurvivalOn)
+	NeedFact(asPath, "fact_surv_tired", 2, today, player, false, abSurvivalOn)
 
 	float warmAt = StorageUtil.GetFloatValue(PlayerRef, KEY_WARM_AT, -1.0)
-	If abParty && warmAt >= 0.0 && afNow - warmAt <= WARM_DAYS && Stage(1) < 3  ; not while still very cold
+	If abParty && warmAt >= 0.0 && afNow - warmAt <= WARM_DAYS && StageOn(1, abSurvivalOn) < 3  ; not while still very cold
 		MLWS_Util.SetNowFact(asPath, "fact_surv_warming", today, 2, player + " has warmed up since the cold got to them.")
 	Else
 		MLWS_Util.ClearFact(asPath, "fact_surv_warming")
@@ -215,8 +232,8 @@ Function WriteFacts(Actor akNpc, string asPath, bool abParty, float afNow)
 	Weather(akNpc, asPath, abParty, today)
 EndFunction
 
-Function NeedFact(string asPath, string asFact, int aiNeed, int aiToday, string asPlayer, bool abSkip)
-	int stage = Stage(aiNeed)
+Function NeedFact(string asPath, string asFact, int aiNeed, int aiToday, string asPlayer, bool abSkip, bool abSurvivalOn)
+	int stage = StageOn(aiNeed, abSurvivalOn)
 	If stage >= 3 && !abSkip
 		MLWS_Util.SetNowFact(asPath, asFact, aiToday, 3, asPlayer + " " + NeedWords(aiNeed, stage) + ".")
 	Else

@@ -1,7 +1,8 @@
 Scriptname MLWS_Actions extends MLWS_Job
 {Mantella Living World - Survival: the three actions.
   ShareFood: party members only; one real item moves between the NPC and the player and the one who received it eats it.
-  EatThis: the player eats something the NPC gave them or from their own pack. Hunger is restored through SMI's API when
+  EatThis: the player eats something the NPC gave them or from their own pack (ShareFood with direction player_eats;
+           the separate EatThis action of the previous version is still handled for one version). Hunger is restored through SMI's API when
            SMI is on, otherwise the item is simply eaten.
   WarmYou: an NPC who really has a fire spell makes a show of flames (a vanilla shader, no damage) and SMI's cold need
            comes down. Refused without SMI.
@@ -22,6 +23,8 @@ float Property WARM_COOLDOWN = 0.1 AutoReadOnly
 Function Register()
 	RegisterForModEvent(ADVANCED + ACTION_SHARE, "OnShareAdvanced")
 	RegisterForModEvent(LEGACY + ACTION_SHARE, "OnShareLegacy")
+	; the separate EatThis action of an earlier version (now ShareFood with direction player_eats) is still answered for
+	; one version, so a stale action file or a talk running across the update does not wait for a reply that never comes
 	RegisterForModEvent(ADVANCED + ACTION_EAT, "OnEatAdvanced")
 	RegisterForModEvent(LEGACY + ACTION_EAT, "OnEatLegacy")
 	RegisterForModEvent(ADVANCED + ACTION_WARM, "OnWarmAdvanced")
@@ -29,34 +32,53 @@ Function Register()
 EndFunction
 
 Event OnShareAdvanced(Form akSpeaker, Form akConversation, int aiArguments)
-	MLWS_Util.Send(ShareFood(akSpeaker as Actor, SKSE_HTTP.getString(aiArguments, "direction", "npc_gives")))
+	string direction = SKSE_HTTP.getString(aiArguments, "direction", "npc_gives")
+	If direction == "player_eats"
+		MLWS_Util.Send(EatThis(akSpeaker as Actor))
+	Else
+		MLWS_Util.Send(ShareFood(akSpeaker as Actor, direction))
+	EndIf
 	MLWS_Util.ActionDone(ACTION_SHARE)
+	WriteFactsAfter(akSpeaker as Actor)  ; after the reply is on its way, not before
 EndEvent
+
+; The NPC's facts again after an action, so the running talk sees the change; after ActionDone, so the reply is not held.
+Function WriteFactsAfter(Actor akNpc)
+	If akNpc && !akNpc.IsDead()
+		Facts.Write(akNpc)
+	EndIf
+EndFunction
 
 ; Mantella sent no arguments: the NPC gives.
 Event OnShareLegacy(Form akSpeaker)
 	MLWS_Util.Send(ShareFood(akSpeaker as Actor, "npc_gives"))
 	MLWS_Util.ActionDone(ACTION_SHARE)
+	WriteFactsAfter(akSpeaker as Actor)
 EndEvent
 
+; The old EatThis action: the same as ShareFood with direction player_eats.
 Event OnEatAdvanced(Form akSpeaker, Form akConversation, int aiArguments)
 	MLWS_Util.Send(EatThis(akSpeaker as Actor))
 	MLWS_Util.ActionDone(ACTION_EAT)
+	WriteFactsAfter(akSpeaker as Actor)
 EndEvent
 
 Event OnEatLegacy(Form akSpeaker)
 	MLWS_Util.Send(EatThis(akSpeaker as Actor))
 	MLWS_Util.ActionDone(ACTION_EAT)
+	WriteFactsAfter(akSpeaker as Actor)
 EndEvent
 
 Event OnWarmAdvanced(Form akSpeaker, Form akConversation, int aiArguments)
 	MLWS_Util.Send(WarmYou(akSpeaker as Actor))
 	MLWS_Util.ActionDone(ACTION_WARM)
+	WriteFactsAfter(akSpeaker as Actor)
 EndEvent
 
 Event OnWarmLegacy(Form akSpeaker)
 	MLWS_Util.Send(WarmYou(akSpeaker as Actor))
 	MLWS_Util.ActionDone(ACTION_WARM)
+	WriteFactsAfter(akSpeaker as Actor)
 EndEvent
 
 ; ---------------------------------------------------------------------------
@@ -98,7 +120,6 @@ string Function ShareFood(Actor akNpc, string asDirection)
 	(Food as MLWS_Food).Record(taker, itemName, MLWS_Native.FoodFlags(item), true)  ; before the equip, so its event is known
 	taker.EquipItem(item, false, true)
 	StorageUtil.SetFloatValue(akNpc, "MLWS_SharedAt", now)
-	Facts.Write(akNpc)
 	Return giver.GetDisplayName() + " gave " + itemName + " to " + taker.GetDisplayName() + ", who ate it."
 EndFunction
 
@@ -146,7 +167,6 @@ string Function EatThis(Actor akNpc)
 		PlayerRef.EquipItem(item, false, true)
 	EndIf
 	StorageUtil.SetFloatValue(akNpc, "MLWS_SharedAt", now)
-	Facts.Write(akNpc)
 	Return player + " ate " + itemName + " at " + name + "'s urging."
 EndFunction
 
@@ -175,7 +195,6 @@ string Function WarmYou(Actor akNpc)
 	EndIf
 	MLWS_SMI.RestoreCold(MLWS_Util.SettingFloat("warm_you_cold", 150.0))
 	StorageUtil.SetFloatValue(akNpc, "MLWS_WarmedAt", now)
-	Facts.Write(akNpc)
 	Return name + " conjured flames and warmed " + player + "."
 EndFunction
 
@@ -217,7 +236,7 @@ EndFunction
 ; ---------------------------------------------------------------------------
 
 ; surv_warm opens WarmYou only for an NPC with a fire spell while SMI's cold need is running.
-Function WriteFacts(Actor akNpc, string asPath, bool abParty, float afNow)
-	bool canWarm = MLWS_Util.SmiLoaded() && MLWS_Util.SurvivalOn() && MLWS_Native.KnowsFire(akNpc)
+Function WriteFacts(Actor akNpc, string asPath, bool abParty, float afNow, bool abSurvivalOn, bool abPlayerVampire, string asPlayer)
+	bool canWarm = MLWS_Util.SmiLoaded() && abSurvivalOn && MLWS_Native.KnowsFire(akNpc)
 	JsonUtil.SetIntValue(asPath, "surv_warm", canWarm as int)
 EndFunction

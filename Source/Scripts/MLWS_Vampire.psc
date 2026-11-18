@@ -22,6 +22,10 @@ string Property KEY_BLOOD_AT = "MLWS_BloodAt" AutoReadOnly
 string Property KEY_SAW_LORD = "MLWS_SawLordAt" AutoReadOnly
 string Property KEY_CURED = "MLWS_CuredAt" AutoReadOnly
 
+; Looked up on first use (None again if they ever fail to load).
+Keyword vampireKeyword
+PlayerVampireQuestScript vampireQuest
+
 Function Register()
 	RegisterForModEvent("NpcVampireFeed", "OnNpcFeed")
 EndFunction
@@ -34,12 +38,31 @@ Event OnNpcFeed(string asEvent, string asTarget, float afLethal, Form akSender)
 	EndIf
 EndEvent
 
+Keyword Function VampireKeyword()
+	If !vampireKeyword
+		vampireKeyword = Game.GetFormFromFile(0x0A82BB, "Skyrim.esm") as Keyword
+	EndIf
+	Return vampireKeyword
+EndFunction
+
+PlayerVampireQuestScript Function VampireQuest()
+	If !vampireQuest
+		vampireQuest = Game.GetFormFromFile(0x0EAFD5, "Skyrim.esm") as PlayerVampireQuestScript
+	EndIf
+	Return vampireQuest
+EndFunction
+
 ; The stage of the player's vampirism, 0 when not one.
 int Function PlayerStage()
-	If !PlayerRef.HasKeyword(Game.GetFormFromFile(0x0A82BB, "Skyrim.esm") as Keyword)
+	Return PlayerStageFor(PlayerRef.HasKeyword(VampireKeyword()))
+EndFunction
+
+; PlayerStage with the player's Vampire keyword already read (MLWS_Facts reads it once per write).
+int Function PlayerStageFor(bool abPlayerVampire)
+	If !abPlayerVampire
 		Return 0
 	EndIf
-	PlayerVampireQuestScript q = Game.GetFormFromFile(0x0EAFD5, "Skyrim.esm") as PlayerVampireQuestScript
+	PlayerVampireQuestScript q = VampireQuest()
 	If q
 		Return q.VampireStatus
 	EndIf
@@ -51,7 +74,7 @@ float Function PlayerLastFed()
 	; The later of our own stamp and the quest's: Better Vampires backdates LastFeedTime for bottled blood and partial
 	; feeds (our stamp wins), and feeds that send no event (Vampire Lord bites, other mods) only move the quest's value.
 	float at = StorageUtil.GetFloatValue(PlayerRef, KEY_FED_AT, -1.0)
-	PlayerVampireQuestScript q = Game.GetFormFromFile(0x0EAFD5, "Skyrim.esm") as PlayerVampireQuestScript
+	PlayerVampireQuestScript q = VampireQuest()
 	If q && q.LastFeedTime > at
 		at = q.LastFeedTime
 	EndIf
@@ -134,11 +157,11 @@ bool Function InSun()
 	Return hour >= 7.0 && hour < 19.0 && (!sky || sky.GetClassification() <= 1)
 EndFunction
 
-Function WriteFacts(Actor akNpc, string asPath, bool abParty, float afNow)
+Function WriteFacts(Actor akNpc, string asPath, bool abParty, float afNow, bool abSurvivalOn, bool abPlayerVampire, string asPlayer)
 	int today = afNow as int
-	string player = MLWS_Util.PlayerName()
-	SelfFacts(akNpc, asPath, abParty, afNow, today)
-	PlayerFacts(akNpc, asPath, afNow, today, player)
+	string player = asPlayer
+	SelfFacts(akNpc, asPath, abParty, afNow, today, abSurvivalOn)
+	PlayerFacts(akNpc, asPath, afNow, today, player, abPlayerVampire)
 	float wolf = StorageUtil.GetFloatValue(PlayerRef, KEY_WOLF, -1.0)
 	If abParty && wolf >= 0.0 && afNow - wolf <= 1.0
 		MLWS_Util.SetFact(asPath, "fact_surv_wolf", wolf as int, (wolf as int) + 1, 2, player + " changed into a werewolf")
@@ -147,8 +170,9 @@ Function WriteFacts(Actor akNpc, string asPath, bool abParty, float afNow)
 	EndIf
 EndFunction
 
-Function SelfFacts(Actor akNpc, string asPath, bool abParty, float afNow, int aiToday)
-	If !MLWS_Util.IsVampire(akNpc)
+Function SelfFacts(Actor akNpc, string asPath, bool abParty, float afNow, int aiToday, bool abSurvivalOn)
+	Keyword vampire = VampireKeyword()
+	If !vampire || !akNpc.HasKeyword(vampire)
 		MLWS_Util.ClearFact(asPath, "fact_surv_v_self")
 		MLWS_Util.ClearFact(asPath, "fact_surv_v_self_sun")
 		MLWS_Util.ClearFact(asPath, "fact_surv_v_self_hunger")
@@ -165,9 +189,9 @@ Function SelfFacts(Actor akNpc, string asPath, bool abParty, float afNow, int ai
 	Else
 		MLWS_Util.ClearFact(asPath, "fact_surv_v_self_sun")
 	EndIf
-	; Only the party is tracked: other vampires may feed without anyone knowing.
+	; Only the party is tracked: other vampires may feed without anyone knowing. Blood hunger only with Survival Mode on.
 	int days = 0
-	If abParty
+	If abParty && abSurvivalOn
 		days = MLWS_Util.DaysSince(akNpc, KEY_BLOOD_AT, afNow)
 	EndIf
 	int most = MLWS_Util.SettingInt("follower_hungry_max", 7)
@@ -180,8 +204,8 @@ Function SelfFacts(Actor akNpc, string asPath, bool abParty, float afNow, int ai
 	EndIf
 EndFunction
 
-Function PlayerFacts(Actor akNpc, string asPath, float afNow, int aiToday, string asPlayer)
-	int stage = PlayerStage()
+Function PlayerFacts(Actor akNpc, string asPath, float afNow, int aiToday, string asPlayer, bool abPlayerVampire)
+	int stage = PlayerStageFor(abPlayerVampire)
 	; NPCs of one record share one file, so what one of them knows would reach every other: only unique NPCs are told.
 	bool unique = akNpc.GetActorBase().IsUnique()
 	bool isClose = stage > 0 && unique && MLWS_Util.IsClose(akNpc)

@@ -13,7 +13,8 @@ Function Register()
 EndFunction
 
 ; Writes or clears this job's facts in the NPC's file. Called once when the NPC joins a talk; the caller saves.
-Function WriteFacts(Actor akNpc, string asPath, bool abParty, float afNow)
+; abSurvivalOn, abPlayerVampire and asPlayer are read once per write by MLWS_Facts and shared by every job.
+Function WriteFacts(Actor akNpc, string asPath, bool abParty, float afNow, bool abSurvivalOn, bool abPlayerVampire, string asPlayer)
 EndFunction
 
 ; Only the quest that tracks beds asks for sleep events.

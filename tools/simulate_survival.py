@@ -1395,11 +1395,11 @@ def run_random(seed, days, fixed, rep):
     rng = random.Random(seed)
     random.seed(seed)
     files = {}
-    chars = ['Vega', 'Nyri']
+    chars = ['Inga', 'Jenassa']
     OTHER_NAMES.update(chars)
     base = roster()
     saves = {c: [World(c, base)] for c in chars}
-    styles = {'Vega': 'glutton', 'Nyri': 'starve'}
+    styles = {'Inga': 'glutton', 'Jenassa': 'starve'}
     day = 0
     while day < days:
         char = rng.choice(chars)
@@ -1470,7 +1470,7 @@ def exhaustive_vampire(fixed, rep):
             for company in [None, 'stranger'] + (twins if with_twins else []):
                 combos += 1
                 launch = Launch(survival=True, smi=True, better_vampires=True)
-                W = World('Vega', [])
+                W = World('Inga', [])
                 W.time = 120.5 if sun else 120.95
                 W.player.weather = 0
                 W.player.vampire_kw, W.player.vstatus = stage > 0, max(stage, 1 if stage else 0)
@@ -1549,7 +1549,7 @@ def exhaustive_vampire(fixed, rep):
 
 def vampire_cases(rep):
     def setup(**launch):
-        W = World('Vega', [])
+        W = World('Inga', [])
         W.time = 20.95  # night: no sun facts
         W.player.vampire_kw, W.player.vstatus = True, 2
         s = Sim(Launch(**launch), W, {}, set(FIXED), rep)
@@ -1604,7 +1604,7 @@ def vampire_cases(rep):
     W.actors[0x102].los = False
     s.fed(0x101)
     f = facts(s, 0x101)
-    case('an awake victim knows', f.get('fact_surv_v_saw', '').endswith('|Vega fed on you') and 'fact_surv_v_player' in f, f)
+    case('an awake victim knows', f.get('fact_surv_v_saw', '').endswith('|Inga fed on you') and 'fact_surv_v_player' in f, f)
     s, W = setup()
     W.actors[0x101].asleep = True
     s.fed(0x101)
@@ -1616,7 +1616,7 @@ def vampire_cases(rep):
     s.race_switched()
     W.player.lord = False
     f = facts(s, 0x102)
-    case('a Vampire Lord change makes witnesses', f.get('fact_surv_v_saw_lord', '').endswith('|You saw Vega turn into a Vampire Lord')
+    case('a Vampire Lord change makes witnesses', f.get('fact_surv_v_saw_lord', '').endswith('|You saw Inga turn into a Vampire Lord')
          and 'fact_surv_v_player' in f, f)
     case('a Vampire Lord witness may use the action lines', s.knows_one(0x102))
 
@@ -1640,7 +1640,7 @@ def vampire_cases(rep):
     s.race_switched()
     case('a cure clears the feeding', not s.shas(PLAYER, 'MLWS_FedAt') and not s.shas(PLAYER, 'MLWS_FedVictim'))
     f = facts(s, 0x102)
-    case('a cured player: the witness remembers the past', f.get('fact_surv_v_saw', '').endswith('|You once saw Vega feed on Ysolda, when they were a vampire')
+    case('a cured player: the witness remembers the past', f.get('fact_surv_v_saw', '').endswith('|You once saw Inga feed on Ysolda, when they were a vampire')
          and 'fact_surv_v_player' not in f, f)
     W.player.vampire_kw, W.time = True, 30.95
     f = facts(s, 0x102)
@@ -1755,7 +1755,7 @@ def main():
         print(f'Hub fact budget: {FACT_TOKENS} tokens for one NPC alone, at least {MIN_GROUP} per NPC in a group')
         for label, args_ in (('worst case (30-letter name, 8 diseases on both)', {}),
                              ('long but plausible (12-letter name, 2 diseases)', {'name': 'Ingrid Snow-', 'disease_count': 2}),
-                             ('typical (4-letter name, 1 disease)', {'name': 'Vega', 'disease_count': 1})):
+                             ('typical (4-letter name, 1 disease)', {'name': 'Inga', 'disease_count': 1})):
             cost, rows = token_estimate(**args_)
             print(f'  {label}: {cost} tokens incl. heading')
             for r in rows:

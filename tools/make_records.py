@@ -39,18 +39,15 @@ write('esp/spriggit-meta.json', json.dumps({'PackageName': 'Spriggit.Yaml.Skyrim
 NOTE = 'Needs Mantella Living World - Survival.'
 ACTIONS = [
     {'identifier': 'mantella_mlws_share_food', 'name': 'ShareFood', 'gate': 'follower',
-     'description': 'Hand one real food item to the player, or take one from the player and eat it. Only when it really happens now; not for talk about food.',
+     'description': 'Real food changes hands and is eaten now; not for talk about food.',
      'key': 'ShareFood',
-     'parameters': {'direction': {'type': 'string', 'enum': ['npc_gives', 'player_gives'],
-                                  'description': 'npc_gives: you hand the player food from your pack and the player eats it; player_gives: the player hands you food and you eat it.'}},
+     # player_eats: the hungry player eats now, from your pack or theirs (the EatThis action of 1.x, now a choice here)
+     'parameters': {'direction': {'type': 'string', 'enum': ['npc_gives', 'player_gives', 'player_eats'],
+                                  'description': 'npc_gives: you hand the player food; player_gives: they hand you food; player_eats: the hungry player agreed to eat now.'}},
      'required': ['direction'],
      'prompt': "If you hand the player food from your pack, or eat food the player gives you, begin your response with '{key}:'"},
-    {'identifier': 'mantella_mlws_eat_this', 'name': 'EatThis', 'gate': 'follower',
-     'description': 'Make the hungry player eat something now, from your pack or theirs. Only when the player clearly agrees to eat.',
-     'key': 'EatThis',
-     'prompt': "If the player is hungry and clearly agrees to eat what you offer, begin your response with '{key}:'"},
     {'identifier': 'mantella_mlws_warm_you', 'name': 'WarmYou', 'gate': 'surv_warm=1',
-     'description': 'Warm the cold player with a fire spell you know. Only when the player is cold and you do it now.',
+     'description': 'Warm the cold player now with a fire spell you know.',
      'key': 'WarmYou',
      'prompt': "If the player is cold and you warm them with a fire spell you know, begin your response with '{key}:'"},
 ]

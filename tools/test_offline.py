@@ -15,7 +15,9 @@ def check(name, ok):
 
 
 actions = glob.glob(os.path.join(ROOT, 'SKSE/Plugins/MantellaSoftware/data/actions/*.json'))
-check('three action files', len(actions) == 3)
+check('two action files (EatThis is ShareFood player_eats)', len(actions) == 2)
+share = json.load(open(os.path.join(ROOT, 'SKSE/Plugins/MantellaSoftware/data/actions/mantella_mlws_share_food.json'), encoding='utf-8'))
+check('ShareFood directions: npc_gives, player_gives, player_eats', share['parameters']['direction']['enum'] == ['npc_gives', 'player_gives', 'player_eats'])
 for path in actions:
     a = json.load(open(path, encoding='utf-8'))
     name = os.path.basename(path)
@@ -43,8 +45,26 @@ check('join commits after every job, then saves',
 check('the vampire job writes first, so the late signs are not cut by conditions',
       0 <= facts_src.find('Vampire.WriteFacts') < facts_src.find('Condition.WriteFacts'))
 actions_src = open(os.path.join(ROOT, 'Source/Scripts/MLWS_Actions.psc'), encoding='utf-8').read()
-check('every action rewrites the facts on success', actions_src.count('Facts.Write(akNpc)') == 3)
+bodies = re.findall(r'^Event On\w+\(.*?^EndEvent', actions_src, re.M | re.S)
+check('every action rewrites the facts after it is done (one helper, called by every action event)',
+      actions_src.count('Facts.Write(akNpc)') == 1 and len(bodies) == 6
+      and all(b.find('ActionDone(') < b.find('WriteFactsAfter(akSpeaker as Actor)') for b in bodies)
+      and all('WriteFactsAfter(akSpeaker as Actor)' in b for b in bodies))
 check('ShareFood and EatThis refuse NPCs outside the party', actions_src.count('is not travelling with') == 2)
+share_event = actions_src[actions_src.find('Event OnShareAdvanced'):actions_src.find('EndEvent', actions_src.find('Event OnShareAdvanced'))]
+check('ShareFood player_eats runs EatThis, the other directions ShareFood', 'If direction == "player_eats"' in share_event
+      and 'EatThis(akSpeaker as Actor)' in share_event and 'ShareFood(akSpeaker as Actor, direction)' in share_event)
+eat_bodies = [b for b in bodies if b.startswith('Event OnEat')]
+check('the EatThis action of the previous version is still answered (advanced and legacy) by EatThis, then done',
+      'RegisterForModEvent(ADVANCED + ACTION_EAT, "OnEatAdvanced")' in actions_src
+      and 'RegisterForModEvent(LEGACY + ACTION_EAT, "OnEatLegacy")' in actions_src and len(eat_bodies) == 2
+      and all('EatThis(akSpeaker as Actor)' in b and 'ActionDone(ACTION_EAT)' in b for b in eat_bodies))
+check('legacy ShareFood prompt describes only npc_gives (the legacy handler always passes it)',
+      'gives you' not in share['prompt'] and 'hand the player food' in share['prompt'])
+check('a radiant talk gets no critical warning', 'If !talk.IsPlayerInConversation()' in open(os.path.join(ROOT, 'Source/Scripts/MLWS_Condition.psc'), encoding='utf-8').read())
+food_src = open(os.path.join(ROOT, 'Source/Scripts/MLWS_Food.psc'), encoding='utf-8').read()
+check('follower hunger and vampire blood hunger only with Survival Mode on',
+      'If abSurvivalOn && hungry >=' in food_src and 'If abParty && abSurvivalOn' in open(os.path.join(ROOT, 'Source/Scripts/MLWS_Vampire.psc'), encoding='utf-8').read())
 util_src = open(os.path.join(ROOT, 'Source/Scripts/MLWS_Util.psc'), encoding='utf-8').read()
 check('jobs only gather facts, Commit writes the file', 'JsonUtil.SetStringValue' not in util_src and 'JsonUtil.UnsetStringValue' not in util_src)
 prios = re.findall(r'Set(?:Now)?Fact\(asPath, .*?, ([0-9]), ', src)
@@ -75,16 +95,16 @@ except Exception as e:  # the Hub repository is optional for this test
     print('SKIP hub reader:', e)
 else:
     facts = lw_state.game_facts({
-        'fact_surv_hunger': '-1|42|2|Vega is famished.',
-        'fact_surv_food_player': '41|43|1|Vega last ate Apple, raw',
-        'fact_surv_meal': '40|-1|1|You and Vega shared a meal of Venison Stew',
+        'fact_surv_hunger': '-1|42|2|Inga is famished.',
+        'fact_surv_food_player': '41|43|1|Inga last ate Apple, raw',
+        'fact_surv_meal': '40|-1|1|You and Inga shared a meal of Venison Stew',
         'fact_surv_bed': '40|41|1|You slept in a bedroll, 6 hours',  # expired by day 42
     }, 42)
     texts = [f['text'] for f in facts]
-    check('hub reads now-facts', 'Vega is famished.' in texts)
-    check('hub keeps last food within 2 days', 'Vega last ate Apple, raw' in texts)
+    check('hub reads now-facts', 'Inga is famished.' in texts)
+    check('hub keeps last food within 2 days', 'Inga last ate Apple, raw' in texts)
     check('hub drops an expired bed', 'You slept in a bedroll, 6 hours' not in texts)
-    check('hub sorts priority 2 first', texts[0] == 'Vega is famished.')
+    check('hub sorts priority 2 first', texts[0] == 'Inga is famished.')
 
 print('offline tests:', 'all passed' if not fails else f'{fails} failed')
 sys.exit(1 if fails else 0)
