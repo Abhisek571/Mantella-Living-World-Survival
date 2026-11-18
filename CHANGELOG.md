@@ -2,7 +2,7 @@
 
 Every change to Mantella Living World - Survival. The Nexus page lists only the main changes for each version.
 
-## Unreleased
+## 1.0.1 (2026-11-18)
 
 ### Changed
 - EatThis is now a choice of ShareFood (player_eats): the same check and the same eating, one action less sent to the model on every reply. The old EatThis action still works for one version, so a talk running across the update is not broken.
