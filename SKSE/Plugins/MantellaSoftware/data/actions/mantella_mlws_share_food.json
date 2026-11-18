@@ -20,7 +20,7 @@
     "required": [
         "direction"
     ],
-    "prompt": "If you hand the player food from your pack, or eat food the player gives you, begin your response with '{key}:'",
+    "prompt": "If you hand the player food from your pack, begin your response with '{key}:'",
     "allowed_games": [
         "skyrim"
     ],

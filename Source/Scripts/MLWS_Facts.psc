@@ -9,6 +9,10 @@ MLWS_Job Property Beds Auto
 MLWS_Job Property Vampire Auto
 MLWS_Job Property Actions Auto
 
+; Looked up on first use; a form from a removed plugin reads None after a load and is looked up again.
+GlobalVariable modeEnabled  ; Survival Mode's switch
+Keyword vampireKeyword
+
 Function Register()
 	RegisterForModEvent("MantellaConversation_NPC_Added", "OnNpcAdded")
 	RegisterForModEvent("MLW_ReportRequest", "OnReportRequest")
@@ -45,15 +49,33 @@ Function Write(Actor akNpc)
 	EndIf
 	; The jobs only gather their facts; Commit then writes them, so the file never holds a half-cleared set.
 	ClearStaged(path)  ; anything left by a write that was cut off
+	; Read once for every job.
+	bool survivalOn = SurvivalOn()
+	If !vampireKeyword
+		vampireKeyword = Game.GetFormFromFile(0x0A82BB, "Skyrim.esm") as Keyword
+	EndIf
+	bool playerVampire = vampireKeyword && PlayerRef.HasKeyword(vampireKeyword)
+	string player = PlayerRef.GetDisplayName()
 	; Vampire first: within a priority Commit keeps the write order, and the late-stage signs must not be cut by conditions.
-	Vampire.WriteFacts(akNpc, path, party, now)
-	Condition.WriteFacts(akNpc, path, party, now)
-	Food.WriteFacts(akNpc, path, party, now)
-	Beds.WriteFacts(akNpc, path, party, now)
-	Actions.WriteFacts(akNpc, path, party, now)
+	Vampire.WriteFacts(akNpc, path, party, now, survivalOn, playerVampire, player)
+	Condition.WriteFacts(akNpc, path, party, now, survivalOn, playerVampire, player)
+	Food.WriteFacts(akNpc, path, party, now, survivalOn, playerVampire, player)
+	Beds.WriteFacts(akNpc, path, party, now, survivalOn, playerVampire, player)
+	Actions.WriteFacts(akNpc, path, party, now, survivalOn, playerVampire, player)
 	Commit(path)
 	JsonUtil.Save(path)  ; the Hub reads fact_surv_* from this file itself: no refresh of the rest of it
 	StorageUtil.UnsetFloatValue(None, "MLWS_WritingAt" + path)
+EndFunction
+
+; MLWS_Util.SurvivalOn with the global kept between writes.
+bool Function SurvivalOn()
+	If !modeEnabled
+		If !MLWS_Util.PluginLoaded(MLWS_Util.SURVIVAL_ESL())
+			Return false
+		EndIf
+		modeEnabled = Game.GetFormFromFile(0x000826, MLWS_Util.SURVIVAL_ESL()) as GlobalVariable
+	EndIf
+	Return modeEnabled && modeEnabled.GetValueInt() == 1
 EndFunction
 
 ; The Hub gives each NPC a small fact budget, so at most max_facts survival facts go in, highest priority first (ties in

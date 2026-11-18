@@ -141,7 +141,7 @@ string Function Describe(int aiKind, string asPlace, int aiHours, string asPlaye
 	Return out + ", " + aiHours + " hours"
 EndFunction
 
-Function WriteFacts(Actor akNpc, string asPath, bool abParty, float afNow)
+Function WriteFacts(Actor akNpc, string asPath, bool abParty, float afNow, bool abSurvivalOn, bool abPlayerVampire, string asPlayer)
 	If !abParty
 		MLWS_Util.ClearFact(asPath, "fact_surv_bed")
 		MLWS_Util.ClearFact(asPath, "fact_surv_best_bed")
@@ -149,7 +149,7 @@ Function WriteFacts(Actor akNpc, string asPath, bool abParty, float afNow)
 		MLWS_Util.ClearFact(asPath, "fact_surv_rest")
 		Return
 	EndIf
-	string player = MLWS_Util.PlayerName()
+	string player = asPlayer
 	int today = afNow as int
 
 	float mine = StorageUtil.GetFloatValue(akNpc, "MLWS_BedAt", -1.0)

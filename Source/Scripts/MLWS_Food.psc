@@ -20,6 +20,8 @@ float Property TWO_HOURS = 0.0834 AutoReadOnly
 int Property MAX_FOODS = 40 AutoReadOnly
 int Property FAVOURITE_MIN = 3 AutoReadOnly
 
+Keyword vampireKeyword  ; looked up on first use; None again if it ever fails to load
+
 Function Register()
 	RegisterForModEvent("MLWS_Ate", "OnAte")
 EndFunction
@@ -113,12 +115,12 @@ string Function Favourite(Actor akWho)
 	Return best
 EndFunction
 
-Function WriteFacts(Actor akNpc, string asPath, bool abParty, float afNow)
+Function WriteFacts(Actor akNpc, string asPath, bool abParty, float afNow, bool abSurvivalOn, bool abPlayerVampire, string asPlayer)
 	If !abParty
 		ClearAll(asPath)
 		Return
 	EndIf
-	string player = MLWS_Util.PlayerName()
+	string player = asPlayer
 	int today = afNow as int
 	LastFood(PlayerRef, asPath, "fact_surv_food_player", player + " last ate ")
 	LastFood(akNpc, asPath, "fact_surv_food_self", "You last ate ")
@@ -143,9 +145,9 @@ Function WriteFacts(Actor akNpc, string asPath, bool abParty, float afNow)
 		MLWS_Util.ClearFact(asPath, "fact_surv_meal")
 	EndIf
 
-	; Followers ask for food: a vampire's hunger is in MLWS_Vampire.
+	; Followers ask for food, only with Survival Mode on: a vampire's hunger is in MLWS_Vampire.
 	int hungry = MLWS_Util.DaysSince(akNpc, KEY_AT, afNow)
-	If hungry >= MLWS_Util.SettingInt("follower_hungry_days", 2) && !MLWS_Util.IsVampire(akNpc)
+	If abSurvivalOn && hungry >= MLWS_Util.SettingInt("follower_hungry_days", 2) && !IsVampire(akNpc)
 		int most = MLWS_Util.SettingInt("follower_hungry_max", 7)
 		If hungry > most
 			MLWS_Util.SetNowFact(asPath, "fact_surv_hungry", today, 3, "You have not eaten in over " + most + " days.")
@@ -157,7 +159,7 @@ Function WriteFacts(Actor akNpc, string asPath, bool abParty, float afNow)
 	EndIf
 
 	int food = MLWS_Native.FoodCount(PlayerRef)
-	If food <= MLWS_Util.SettingInt("low_food", 3) && !MLWS_Util.IsVampire(PlayerRef)
+	If food <= MLWS_Util.SettingInt("low_food", 3) && !abPlayerVampire
 		If food == 0
 			MLWS_Util.SetNowFact(asPath, "fact_surv_supplies", today, 2, player + " is carrying no food.")
 		Else
@@ -166,6 +168,14 @@ Function WriteFacts(Actor akNpc, string asPath, bool abParty, float afNow)
 	Else
 		MLWS_Util.ClearFact(asPath, "fact_surv_supplies")
 	EndIf
+EndFunction
+
+; MLWS_Util.IsVampire with the keyword looked up once (Skyrim.esm's Vampire keyword).
+bool Function IsVampire(Actor akActor)
+	If !vampireKeyword
+		vampireKeyword = Game.GetFormFromFile(0x0A82BB, "Skyrim.esm") as Keyword
+	EndIf
+	Return vampireKeyword && akActor.HasKeyword(vampireKeyword)
 EndFunction
 
 Function LastFood(Actor akWho, string asPath, string asFact, string asText)

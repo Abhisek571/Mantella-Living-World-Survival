@@ -2,7 +2,7 @@ Scriptname MLWS_Actions extends MLWS_Job
 {Mantella Living World - Survival: the three actions.
   ShareFood: party members only; one real item moves between the NPC and the player and the one who received it eats it.
   EatThis: the player eats something the NPC gave them or from their own pack (ShareFood with direction player_eats;
-           the separate EatThis action of the previous version stays registered for one version). Hunger is restored through SMI's API when
+           the separate EatThis action of the previous version is still handled for one version). Hunger is restored through SMI's API when
            SMI is on, otherwise the item is simply eaten.
   WarmYou: an NPC who really has a fire spell makes a show of flames (a vanilla shader, no damage) and SMI's cold need
            comes down. Refused without SMI.
@@ -23,10 +23,10 @@ float Property WARM_COOLDOWN = 0.1 AutoReadOnly
 Function Register()
 	RegisterForModEvent(ADVANCED + ACTION_SHARE, "OnShareAdvanced")
 	RegisterForModEvent(LEGACY + ACTION_SHARE, "OnShareLegacy")
-	; the separate EatThis action of an earlier version is gone (ShareFood with direction player_eats); a save that still
-	; holds its registration finds no handler, which does nothing
-	UnregisterForModEvent(ADVANCED + ACTION_EAT)
-	UnregisterForModEvent(LEGACY + ACTION_EAT)
+	; the separate EatThis action of an earlier version (now ShareFood with direction player_eats) is still answered for
+	; one version, so a stale action file or a talk running across the update does not wait for a reply that never comes
+	RegisterForModEvent(ADVANCED + ACTION_EAT, "OnEatAdvanced")
+	RegisterForModEvent(LEGACY + ACTION_EAT, "OnEatLegacy")
 	RegisterForModEvent(ADVANCED + ACTION_WARM, "OnWarmAdvanced")
 	RegisterForModEvent(LEGACY + ACTION_WARM, "OnWarmLegacy")
 EndFunction
@@ -53,6 +53,19 @@ EndFunction
 Event OnShareLegacy(Form akSpeaker)
 	MLWS_Util.Send(ShareFood(akSpeaker as Actor, "npc_gives"))
 	MLWS_Util.ActionDone(ACTION_SHARE)
+	WriteFactsAfter(akSpeaker as Actor)
+EndEvent
+
+; The old EatThis action: the same as ShareFood with direction player_eats.
+Event OnEatAdvanced(Form akSpeaker, Form akConversation, int aiArguments)
+	MLWS_Util.Send(EatThis(akSpeaker as Actor))
+	MLWS_Util.ActionDone(ACTION_EAT)
+	WriteFactsAfter(akSpeaker as Actor)
+EndEvent
+
+Event OnEatLegacy(Form akSpeaker)
+	MLWS_Util.Send(EatThis(akSpeaker as Actor))
+	MLWS_Util.ActionDone(ACTION_EAT)
 	WriteFactsAfter(akSpeaker as Actor)
 EndEvent
 
@@ -223,7 +236,7 @@ EndFunction
 ; ---------------------------------------------------------------------------
 
 ; surv_warm opens WarmYou only for an NPC with a fire spell while SMI's cold need is running.
-Function WriteFacts(Actor akNpc, string asPath, bool abParty, float afNow)
-	bool canWarm = MLWS_Util.SmiLoaded() && MLWS_Util.SurvivalOn() && MLWS_Native.KnowsFire(akNpc)
+Function WriteFacts(Actor akNpc, string asPath, bool abParty, float afNow, bool abSurvivalOn, bool abPlayerVampire, string asPlayer)
+	bool canWarm = MLWS_Util.SmiLoaded() && abSurvivalOn && MLWS_Native.KnowsFire(akNpc)
 	JsonUtil.SetIntValue(asPath, "surv_warm", canWarm as int)
 EndFunction
