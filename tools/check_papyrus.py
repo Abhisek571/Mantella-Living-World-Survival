@@ -15,12 +15,25 @@ Checks:
 """
 import glob, json, os, re, sys
 
+
+def read_text(path, errors='strict'):
+    """A file's text (UTF-8); the file is closed again at once."""
+    with open(path, encoding='utf-8', errors=errors) as f:
+        return f.read()
+
+
+def read_json(path):
+    return json.loads(read_text(path))
+
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CODING = os.path.dirname(ROOT)
 SRC = os.path.join(ROOT, 'Source', 'Scripts')
 STUBS = os.path.join(ROOT, 'build', 'stubs')
-_paths = json.load(open(os.path.join(CODING, 'Mantella-Living-World-Hub', 'tools', 'local-paths.json'))) \
-    if os.path.isfile(os.path.join(CODING, 'Mantella-Living-World-Hub', 'tools', 'local-paths.json')) else {}
+LOCAL_PATHS = os.path.join(CODING, 'Mantella-Living-World-Hub', 'tools', 'local-paths.json')
+SETTINGS_FILE = os.path.join(ROOT, 'SKSE/Plugins/StorageUtilData/MantellaLivingWorld/survival_settings.json')
+ACTION_FILES = os.path.join(ROOT, 'SKSE/Plugins/MantellaSoftware/data/actions/*.json')
+_paths = read_json(LOCAL_PATHS) if os.path.isfile(LOCAL_PATHS) else {}
 _mo2 = os.environ.get('MLW_MO2') or _paths.get('mo2', '')
 MODS = os.path.join(_mo2, 'mods') if _mo2 else ''
 VANILLA = os.path.join(_paths.get('game', ''), 'Data', 'Source', 'Scripts')
@@ -75,7 +88,7 @@ class Script:
     def __init__(self, path):
         self.path = path
         self.file = os.path.basename(path)
-        raw = open(path, encoding='utf-8', errors='replace').read()
+        raw = read_text(path, errors='replace')
         raw = re.sub(r'\{[^}]*\}', lambda m: '\n' * m.group(0).count('\n'), raw)  # doc comments
         raw = re.sub(r';/.*?/;', lambda m: '\n' * m.group(0).count('\n'), raw, flags=re.S)
         self.lines = [strip(l) for l in raw.split('\n')]
@@ -202,7 +215,7 @@ def pushes_after(path, create_rx):
     """The Push types after a ModEvent.Create matching create_rx, up to its Send, in a sender's source."""
     if not os.path.isfile(path):
         return None
-    lines = [strip(l) for l in open(path, encoding='utf-8', errors='replace')]
+    lines = [strip(l) for l in read_text(path, errors='replace').split('\n')]
     for i, l in enumerate(lines):
         if re.search(create_rx, l):
             types = []
@@ -216,7 +229,7 @@ def pushes_after(path, create_rx):
 
 
 MANTELLA = REAL['MantellaConversation']
-cpp = open(os.path.join(ROOT, 'plugin', 'src', 'Survival.cpp'), encoding='utf-8').read()
+cpp = read_text(os.path.join(ROOT, 'plugin', 'src', 'Survival.cpp'))
 SENDERS = [  # (event name or prefix, is prefix, pushed types, where it comes from)
     ('MantellaConversation_NPC_Added', False, pushes_after(MANTELLA, r'ModEvent\.Create\(EventInterface\.EVENT_CONVERSATION_NPC_ADDED\)') or ['form'], 'MantellaConversation.psc SendActorAddedEvents'),
     ('MantellaConversation_Advanced_Action_', True, pushes_after(MANTELLA, r'EVENT_ADVANCED_ACTIONS_PREFIX \+ actionIdentifier') or ['form', 'form', 'int'], 'MantellaConversation.psc RaiseActionEvent'),
@@ -227,7 +240,7 @@ if re.search(r'ModCallbackEvent\s+event\{\s*"MLWS_Ate"', cpp):
     SENDERS.append(('MLWS_Ate', False, ['string', 'string', 'float', 'form'], 'Survival.cpp OnEquip (SKSE ModCallbackEvent)'))
 # Vampire Feed Proxy (optional mod): akFeeder.SendModEvent("NpcVampireFeed", <target FormID>, <lethal>), an SKSE mod event
 VFP = os.path.join(MODS, '[NoDelete] Vampire Feed Proxy', 'Scripts', 'Source', 'VampireFeedProxy.psc')
-if not os.path.isfile(VFP) or re.search(r'\.SendModEvent\("NpcVampireFeed"', open(VFP, encoding='utf-8').read()):
+if not os.path.isfile(VFP) or re.search(r'\.SendModEvent\("NpcVampireFeed"', read_text(VFP)):
     SENDERS.append(('NpcVampireFeed', False, ['string', 'string', 'float', 'form'], 'VampireFeedProxy.psc NpcVampireFeed (SendModEvent)'))
 check('handlers', 'senders found in Mantella and Hub sources', all(t is not None for _, _, t, _ in SENDERS),
       [n for n, _, t, _ in SENDERS if t is None])
@@ -371,7 +384,7 @@ for key, k in sorted(keys.items()):
         continue
     if not k['w']:
         ext = EXTERNAL.get(key)
-        ok = bool(ext) and os.path.isfile(ext) and re.search(re.escape(key), open(ext, encoding='utf-8').read(), re.I) is not None
+        ok = bool(ext) and os.path.isfile(ext) and re.search(re.escape(key), read_text(ext), re.I) is not None
         check('keys', f'StorageUtil "{key}": read here, written by {os.path.basename(ext) if ext else "nobody"}', ok, k['r'])
     elif key in WRITE_ONLY:
         check('keys', f'StorageUtil "{key}": written, never read (known: {WRITE_ONLY[key]})', True)
@@ -380,7 +393,7 @@ for key, k in sorted(keys.items()):
     check('keys', f'StorageUtil "{key}": one value type', len({t.rstrip('[]') for t in k['types']}) <= 1, sorted(k['types']))
     check('keys', f'StorageUtil "{key}": one owner kind', len(k['owners']) <= 1, sorted(k['owners']))
 
-settings = json.load(open(os.path.join(ROOT, 'SKSE/Plugins/StorageUtilData/MantellaLivingWorld/survival_settings.json'), encoding='utf-8'))
+settings = read_json(SETTINGS_FILE)
 for s in scripts.values():
     for fn, i, m, args in calls(s, r'JsonUtil\.(\w+)'):
         op = m.group(1)
@@ -443,9 +456,9 @@ check('actions', 'MLWS_Util.ActionDone sends Mantella_ActionResponseCompleted wi
 iface = os.path.join(os.path.dirname(MANTELLA), 'MantellaInterface.psc')
 if os.path.isfile(iface):
     check('actions', "Mantella listens for that event name (MantellaInterface.psc)",
-          'EVENT_ACTION_RESPONSE_COMPLETED = "Mantella_ActionResponseCompleted"' in open(iface, encoding='utf-8').read())
-for path in sorted(glob.glob(os.path.join(ROOT, 'SKSE/Plugins/MantellaSoftware/data/actions/*.json'))):
-    a = json.load(open(path, encoding='utf-8'))
+          'EVENT_ACTION_RESPONSE_COMPLETED = "Mantella_ActionResponseCompleted"' in read_text(iface))
+for path in sorted(glob.glob(ACTION_FILES)):
+    a = read_json(path)
     ident = a['identifier']
     for prefix in ('MantellaConversation_Advanced_Action_', 'MantellaConversation_Action_'):
         found = [(s, fn, i, args) for s in scripts.values() for fn, i, m, args in calls(s, r'\bRegisterForModEvent')
@@ -481,7 +494,7 @@ for path in sorted(glob.glob(os.path.join(ROOT, 'SKSE/Plugins/MantellaSoftware/d
 # ---------------------------------------------------------------------------------------------------------------------
 
 for s in scripts.values():
-    doc = open(s.path, encoding='utf-8').read()
+    doc = read_text(s.path)
     stated = [float(x) for x in re.findall(r'every (\d+(?:\.\d+)?) real seconds', doc)]  # a slower one may follow
     minimum = min(stated) if stated else DESIGN_POLL
     for fn, i, m, args in calls(s, r'\b(RegisterForSingleUpdate|RegisterForUpdate|RegisterForSingleUpdateGameTime|RegisterForUpdateGameTime)'):
@@ -509,7 +522,7 @@ for s in scripts.values():
 # ---------------------------------------------------------------------------------------------------------------------
 
 for path in sorted(glob.glob(os.path.join(ROOT, 'esp', 'Quests', '*.yaml'))):
-    y = open(path, encoding='utf-8').read()
+    y = read_text(path)
     m = re.search(r'Scripts:\s*\n\s*- Name: (\w+)\s*\n\s*Properties:\s*\n((?:\s+- MutagenObjectType.*\n(?:\s{6,}.*\n)*)*)', y)
     if not m:
         check('properties', f'{os.path.basename(path)}: quest script found', False)

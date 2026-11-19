@@ -18,7 +18,8 @@ QUESTS = [
 
 def write(path, text):
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    open(path, 'w', encoding='utf-8', newline='\n').write(text)
+    with open(path, 'w', encoding='utf-8', newline='\n') as f:
+        f.write(text)
 
 
 for fid, eid, script, name, links in QUESTS:

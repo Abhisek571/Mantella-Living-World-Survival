@@ -2,6 +2,11 @@
 
 Every change to Mantella Living World - Survival. The Nexus page lists only the main changes for each version.
 
+## Unreleased
+
+### Changed
+- Code cleanup of the offline tools: shared file readers, fewer repeated reads. No change in game behaviour.
+
 ## 1.0.1 (2026-11-18)
 
 ### Changed
